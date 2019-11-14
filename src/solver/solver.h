@@ -377,6 +377,9 @@ void Solver<S>::run_variation(const double eps_var, const bool until_converged) 
   const bool get_pair_contrib = Config::get<bool>("get_pair_contrib", false);
   bool var_sd = Config::get<bool>("var_sd", get_pair_contrib);
 
+  const bool second_rejection = Config::get<bool>("second_rejection", false);
+  double e_hf_1b = second_rejection ? system.get_e_hf_1b() : 0.;
+
   while (!converged) {
     eps_tried_prev.resize(n_dets, Util::INF);
     if (until_converged) Timer::start(Util::str_printf("#%zu", iteration + 1));
@@ -405,8 +408,15 @@ void Solver<S>::run_variation(const double eps_var, const bool until_converged) 
             }
             dist_new_dets.async_set(connected_det_reg);
           };
-          system.find_connected_dets(det, eps_tried_prev[i], eps_min, connected_det_handler);
-          eps_tried_prev[i] = eps_min;
+          if (second_rejection) {
+            double prev_max_rejection = system.find_connected_dets(
+                det, eps_tried_prev[i], eps_min, connected_det_handler, true, e_hf_1b);
+            eps_tried_prev[i] = prev_max_rejection;
+          } else {
+	    //double prev_max_rejection = system.find_connected_dets(det, eps_tried_prev[i], eps_min, connected_det_handler, false, 0.);
+	    static_cast<void>(system.find_connected_dets(det, eps_tried_prev[i], eps_min, connected_det_handler));
+            eps_tried_prev[i] = eps_min;
+          }
         });
         dist_new_dets.sync();
         n_dets_new += dist_new_dets.get_n_keys();
@@ -585,8 +595,8 @@ double Solver<S>::get_energy_pt_dtm(const double eps_var) {
         MathVector<double, 1> contrib;
         hc_sums.async_set(det_a, contrib);
       };
-      system.find_connected_dets(
-          det, safety_f * eps_var / std::abs(coef), eps_pt_dtm / std::abs(coef), pt_det_handler);
+      static_cast<void>(system.find_connected_dets(
+          det, safety_f * eps_var / std::abs(coef), eps_pt_dtm / std::abs(coef), pt_det_handler));
     });
     hc_sums.sync();
     const size_t n_pt_dets = hc_sums.get_n_keys();
@@ -629,8 +639,8 @@ double Solver<S>::get_energy_pt_dtm(const double eps_var) {
           const MathVector<double, 1> contrib(hc);
           hc_sums.async_set(det_a, contrib, fgpl::Reducer<MathVector<double, 1>>::sum);
         };
-        system.find_connected_dets(
-            det, safety_f * eps_var / std::abs(coef), eps_pt_dtm / std::abs(coef), pt_det_handler);
+        static_cast<void>(system.find_connected_dets(
+            det, safety_f * eps_var / std::abs(coef), eps_pt_dtm / std::abs(coef), pt_det_handler));
       });
       hc_sums.sync(fgpl::Reducer<MathVector<double, 1>>::sum);
       if (Parallel::is_master()) printf("%zu%% ", (j + 1) * 20);
@@ -709,8 +719,8 @@ UncertResult Solver<S>::get_energy_pt_psto(const double eps_var, const double en
         MathVector<double, 2> contrib;
         hc_sums.async_set(det_a, contrib);
       };
-      system.find_connected_dets(
-          det, safety_f * eps_var / std::abs(coef), eps_pt_psto / std::abs(coef), pt_det_handler);
+      static_cast<void>(system.find_connected_dets(
+          det, safety_f * eps_var / std::abs(coef), eps_pt_psto / std::abs(coef), pt_det_handler));
     });
     hc_sums.sync();
     const size_t n_pt_dets = hc_sums.get_n_keys();
@@ -756,8 +766,8 @@ UncertResult Solver<S>::get_energy_pt_psto(const double eps_var, const double en
           if (std::abs(hc) >= eps_pt_dtm) contrib[1] = hc;
           hc_sums.async_set(det_a, contrib, fgpl::Reducer<MathVector<double, 2>>::sum);
         };
-        system.find_connected_dets(
-            det, safety_f * eps_var / std::abs(coef), eps_pt_psto / std::abs(coef), pt_det_handler);
+        static_cast<void>(system.find_connected_dets(
+            det, safety_f * eps_var / std::abs(coef), eps_pt_psto / std::abs(coef), pt_det_handler));
       });
       hc_sums.sync(fgpl::Reducer<MathVector<double, 2>>::sum);
       if (Parallel::is_master()) printf("%zu%% ", (j + 1) * 20);
@@ -881,8 +891,8 @@ UncertResult Solver<S>::get_energy_pt_sto(
         MathVector<double, 5> contrib;
         hc_sums.async_set(det_a, contrib);
       };
-      system.find_connected_dets(
-          det, safety_f * eps_var / std::abs(coef), eps_pt / std::abs(coef), pt_det_handler);
+      static_cast<void>(system.find_connected_dets(
+          det, safety_f * eps_var / std::abs(coef), eps_pt / std::abs(coef), pt_det_handler));
     });
     hc_sums.sync();
     const size_t n_pt_dets = hc_sums.get_n_keys();
@@ -1010,8 +1020,8 @@ UncertResult Solver<S>::get_energy_pt_sto(
           }
           hc_sums.async_set(det_a, contrib, fgpl::Reducer<MathVector<double, 5>>::sum);
         };
-        system.find_connected_dets(
-            det, safety_f * eps_var / std::abs(coef), eps_pt / std::abs(coef), pt_det_handler);
+        static_cast<void>(system.find_connected_dets(
+            det, safety_f * eps_var / std::abs(coef), eps_pt / std::abs(coef), pt_det_handler));
       });
       hc_sums.sync(fgpl::Reducer<MathVector<double, 5>>::sum);
       if (Parallel::is_master()) printf("%zu%% ", (j + 1) * 20);
