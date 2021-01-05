@@ -540,6 +540,8 @@ std::cout<<"\npert theory estimate of Hessian lowest eigenval: "<<correction<<st
   } else { // augmented hessian
     const double lambda = Config::get<double>("optimization/ah_lambda", 1.);
     for (size_t j = 0; j < n_param; j++) hess_ci_orb(0, j) = lambda * grad(j);
+    LanczosSolver lanczos(hamiltonian_matrix, hess_ci_orb, hess, e_var);
+    new_param_ = lanczos.solve(wf_coefs);
     DavidsonSolver davidson(hamiltonian_matrix, hess_ci_orb, hess, e_var);
     new_param_ = davidson.solve(wf_coefs);
     for (auto val: new_param_) val *= lambda;

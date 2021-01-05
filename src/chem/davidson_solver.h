@@ -20,14 +20,15 @@ public:
 //std::cout<<"\nHoo\n"<<Hoo;
   }
 
-  double lowest_eigenvalue;
+  //double lowest_eigenvalue;
 
-  //std::vector<double> solve(const std::vector<double>& wf_coefs) const {
-  std::vector<double> solve(const std::vector<double>& wf_coefs) {
+  std::vector<double> solve(const std::vector<double>& wf_coefs) const {
+  //std::vector<double> solve(const std::vector<double>& wf_coefs) {
     Timer::start("Davidson diagonalization solver");
 
-    const double TOLERANCE = 1e-6;
+    const double TOLERANCE = 1e-7;
     const size_t n_iterations_store = 5;
+    double lowest_eigenvalue = 0.;
     double lowest_eigenvalue_prev = 0.;
  
     std::vector<double> initial_vector_c(wf_coefs), initial_vector_o(n_orb_param, 0.);

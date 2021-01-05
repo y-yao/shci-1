@@ -13,26 +13,27 @@ public:
   Hoo(hessian_orb_orb) {
     n_dets = hamiltonian_matrix.count_n_rows();
     n_orb_param = Hco.cols();
-//std::cout<<"\nhamiltonian\n";
+//std::cout<<"\n$$e_var\n"<<e_var;
+//std::cout<<"\n$$Hco\n"<<Hco;
+//std::cout<<"\n$$Hoo\n"<<Hoo;
+//std::cout<<"\n$$hamiltonian\n";
 //for (size_t i = 0; i<n_dets; i++) hamiltonian_matrix.print_row(i);
-//std::cout<<"\ne_var "<<e_var;
-//std::cout<<"\nHco\n"<<Hco;
-//std::cout<<"\nHoo\n"<<Hoo;
   }
 
-  double lowest_eigenvalue;
+  //double lowest_eigenvalue;
 
   //std::vector<double> solve(const std::vector<double>& wf_coefs) const {
-  std::vector<double> solve(const std::vector<double>& wf_coefs) {
+  std::vector<double> solve(const std::vector<double>& wf_coefs) const {
     Timer::start("Lanczos diagonalization solver");
 
-    const double TOLERANCE = 1e-8;
+    const double TOLERANCE = 1e-7;
     const size_t n_iterations_store = 500;
     double lowest_eigenval_prev = 1e5;
 
     double beta = 0.;
     double alpha = 0.;
     std::vector<double> q_c(wf_coefs), q_o(n_orb_param, 1.);
+    //std::vector<double> q_c(n_dets, 1.), q_o(n_orb_param, 1.);
     std::vector<double> q_c_prev(n_dets, 0.), q_o_prev(n_orb_param, 0.);
     double norm = sqrt(Util::dot_omp(q_c, q_c) + Util::dot_omp(q_o, q_o));
 #pragma omp parallel for
@@ -40,23 +41,16 @@ public:
 #pragma omp parallel for
     for (size_t j = 0; j < n_orb_param; j++) q_o[j] = q_o[j] / norm;
    
-    MatrixXd T(n_iterations_store, n_iterations_store); 
+    MatrixXd T = MatrixXd::Zero(n_iterations_store, n_iterations_store); 
     for (unsigned i=0; i<n_iterations_store-1; i++) {
       std::vector<double> v_c(n_dets), v_o(n_orb_param);
       mat_vec(q_c, q_o, v_c, v_o);
-//std::cout<<"\n\tv_c "<<v_c[0]<<" "<<v_c[1]<<" v_o "<<v_o[0]<<" "<<v_o[1];
-#pragma omp parallel for
-      for (size_t j = 0; j < n_dets; j++) v_c[j] = v_c[j] - beta * q_c_prev[j];
-#pragma omp parallel for
-      for (size_t j = 0; j < n_orb_param; j++) v_o[j] = v_o[j] - beta * q_o_prev[j];
       alpha = Util::dot_omp(q_c, v_c) + Util::dot_omp(q_o, v_o);
-//std::cout<<"\n\talpha "<<alpha;
 #pragma omp parallel for
-      for (size_t j = 0; j < n_dets; j++) v_c[j] = v_c[j] - alpha * q_c[j];
+      for (size_t j = 0; j < n_dets; j++) v_c[j] = v_c[j] - alpha * q_c[j] - beta * q_c_prev[j];
 #pragma omp parallel for
-      for (size_t j = 0; j < n_orb_param; j++) v_o[j] = v_o[j] - alpha * q_o[j];
+      for (size_t j = 0; j < n_orb_param; j++) v_o[j] = v_o[j] - alpha * q_o[j] - beta * q_o_prev[j];
       beta = sqrt(Util::dot_omp(v_c, v_c) + Util::dot_omp(v_o, v_o));
-//      std::cout<<"\n\tbeta "<<beta;
       if (beta < 1e-9) break;
       q_c_prev = q_c; q_o_prev = q_o;
 #pragma omp parallel for
@@ -66,13 +60,15 @@ public:
       T(i, i) = alpha;
       T(i, i+1) = beta;
       T(i+1, i) = beta;
- 
+
       Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> eigenSolver(T.leftCols(i+1).topRows(i+1));
       double lowest_eigenval = eigenSolver.eigenvalues().minCoeff();
-      std::cout<<"\nIter "<<i<<": "<<lowest_eigenval;
+      if (Parallel::is_master()) printf("\nIter %d: %.10f", i,lowest_eigenval);
       if (lowest_eigenval_prev - lowest_eigenval < TOLERANCE) break;
       lowest_eigenval_prev = lowest_eigenval;
     }
+
+    Timer::end();
     return q_o;
   }
 
