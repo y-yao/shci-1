@@ -63,7 +63,7 @@ public:
 
       Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> eigenSolver(T.leftCols(i+1).topRows(i+1));
       double lowest_eigenval = eigenSolver.eigenvalues().minCoeff();
-      if (Parallel::is_master()) printf("\nIter %d: %.10f", i,lowest_eigenval);
+      if (Parallel::is_master()) printf("Iter %d: %.10f\n", i,lowest_eigenval);
       if (lowest_eigenval_prev - lowest_eigenval < TOLERANCE) break;
       lowest_eigenval_prev = lowest_eigenval;
     }

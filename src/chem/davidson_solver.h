@@ -178,7 +178,7 @@ std::cout<<"\nresidual norm "<<Util::dot_omp(Hw_c, Hw_c) + Util::dot_omp(Hw_o, H
     for (size_t i =1; i<10; i++) std::cout<<" "<<w_c[i]/w_c[0];
     std::cout<<"\n w_o ";
     for (const auto val: w_o) std::cout<<" "<<val/w_c[0];
-
+    std::cout<<"\n";
     for (size_t j = 0; j < n_orb_param; j++) w_o[j] /= w_c[0];
 
     Timer::end();
