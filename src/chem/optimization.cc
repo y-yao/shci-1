@@ -544,7 +544,7 @@ std::cout<<"\npert theory estimate of Hessian lowest eigenval: "<<correction<<st
     new_param_ = lanczos.solve(wf_coefs);
     DavidsonSolver davidson(hamiltonian_matrix, hess_ci_orb, hess, e_var);
     new_param_ = davidson.solve(wf_coefs);
-    for (auto val: new_param_) val *= lambda;
+    for (auto& val: new_param_) val /= lambda;
   }
   Map<VectorXd> new_param(new_param_.data(), n_param);
   
