@@ -228,7 +228,8 @@ void Solver<S>::optimization_run() {
   double min_energy_var = prev_energy_var;
   unsigned iters_bt_dumps = 1;
 
-  std::string method = Config::get<std::string>("optimization/method", "app_newton");
+  const std::string method = Config::get<std::string>("optimization/method", "app_newton");
+  const unsigned n_micro = Config::get<unsigned>("optimization/micro_iter", 0);
 
   while (i_iter < natorb_iter + optorb_iter) {
     if (Parallel::is_master())
@@ -288,6 +289,34 @@ void Solver<S>::optimization_run() {
     }
 
     prev_energy_var = system.energy_var[0];
+
+    for (unsigned i_micro = 0; i_micro < n_micro; i_micro++) {
+      system.optimization_microiteration(hamiltonian.matrix, method);
+
+      //hamiltonian.clear();
+      //hamiltonian.update(system);
+      hamiltonian.update_existing_elems(system);
+
+      Timer::checkpoint("update Hamiltonian elements");
+
+      Davidson davidson(system.n_states);
+      davidson.diagonalize(hamiltonian.matrix, system.coefs, 1e-8, Parallel::is_master());
+      system.energy_var = davidson.get_lowest_eigenvalues();
+      system.coefs = davidson.get_lowest_eigenvectors();
+    
+      diff_energy_var = system.energy_var[0] - prev_energy_var;
+
+      if (Parallel::is_master()) {
+        std::printf(
+            "\nMicro-iteration %d: E: %.8f ndet: %'zu de: %.8f\n",
+            i_micro,
+            system.energy_var[0],
+            system.dets.size(),
+            diff_energy_var);
+      }
+      prev_energy_var = system.energy_var[0];
+    }
+    
 
     system.post_variation_optimization(hamiltonian.matrix, method);
 

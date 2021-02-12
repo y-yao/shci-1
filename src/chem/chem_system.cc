@@ -685,6 +685,36 @@ void ChemSystem::post_variation_optimization(
   }
 }
 
+void ChemSystem::optimization_microiteration(
+    SparseMatrix& hamiltonian_matrix,
+    const std::string& method) {
+  Optimization optorb_optimizer(integrals, hamiltonian_matrix, dets, coefs[0]);
+
+  if (Util::str_equals_ci("newton", method)) {
+    Timer::start("Newton optimization");
+    optorb_optimizer.get_optorb_rotation_matrix_from_newton();
+  } else if (Util::str_equals_ci("grad_descent", method)) {
+    Timer::start("Gradient descent optimization");
+    optorb_optimizer.get_optorb_rotation_matrix_from_grad_descent();
+  } else if (Util::str_equals_ci("amsgrad", method)) {
+    Timer::start("AMSGrad optimization");
+    optorb_optimizer.get_optorb_rotation_matrix_from_amsgrad();
+  } else if (Util::str_equals_ci("bfgs", method)) {
+    Timer::start("BFGS optimization");
+    optorb_optimizer.generate_optorb_integrals_from_bfgs();
+  } else if (Util::str_equals_ci("full_optimization", method)) {
+    Timer::start("Full optimization");
+    optorb_optimizer.get_optorb_rotation_matrix_from_full_optimization(energy_var[0]);
+  } else {
+    Timer::start("Approximate Newton optimization");
+    optorb_optimizer.get_optorb_rotation_matrix_from_approximate_newton();
+  }
+  Timer::end();
+
+  rotation_matrix *= optorb_optimizer.rotation_matrix();
+  optorb_optimizer.rotate_and_rewrite_integrals();
+}
+
 void ChemSystem::variation_cleanup() {
   energy_hf = 0.;
   energy_var = std::vector<double>(n_states, 0.);
@@ -705,10 +735,15 @@ void ChemSystem::variation_cleanup() {
 void ChemSystem::dump_integrals(const char* filename) {
   integrals.dump_integrals(filename);
   if (Config::get<bool>("optimization/rotation_matrix", false)) {
-    std::ofstream pFile;
-    pFile.open("rotation_matrix");
-    pFile << rotation_matrix;
-    pFile.close();
+    FILE *fp;
+    fp = fopen("rotation_matrix", "w");
+    for (int i = 0; i < rotation_matrix.rows(); i++) {
+      for (int j = 0; j < rotation_matrix.cols(); j++) {
+        fprintf(fp, "%.10E ", rotation_matrix(i, j));
+      }
+      fprintf(fp, "\n");
+    }
+    fclose(fp);
   }
 }
 

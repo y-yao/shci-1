@@ -355,7 +355,9 @@ void Optimization::get_optorb_rotation_matrix_from_approximate_newton() {
           printf("eps for Newton step enhancement changes to %.3f.\n", eps);
       }
       new_update *= step_size;
-      old_update = new_update;
+      double momentum_proportion = Config::get<double>("optimization/momentum_proportion", 0.0);
+      //old_update += new_update;
+      old_update = momentum_proportion * (old_update / old_norm) + (1.0 - momentum_proportion) * (new_update / step_size / new_norm);
       if (Parallel::is_master())
         printf("cosine: %.5f, step size: %.5f.\n", cos, step_size);
     }
