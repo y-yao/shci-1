@@ -54,7 +54,9 @@ class RDM {
  private:
   const Integrals& integrals;
 
-  const unsigned n_orbs, n_up, n_dn;
+  const size_t n_orbs;
+
+  const unsigned n_up, n_dn;
 
   const bool time_sym;
 

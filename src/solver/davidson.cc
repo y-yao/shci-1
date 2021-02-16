@@ -79,7 +79,7 @@ void Davidson::diagonalize(
   lowest_eigenvalues_prev = lowest_eigenvalues;
 
   size_t it_real = 1;
-  for (size_t it = n_states; it < n_iterations_store * n_states * 3; it++) {
+  for (size_t it = n_states; it < n_iterations_store * n_states * 2; it++) {
     size_t it_circ = it % (n_states * n_iterations_store);
     if (it >= n_iterations_store) {
       if (it_circ < n_states - 1) continue;

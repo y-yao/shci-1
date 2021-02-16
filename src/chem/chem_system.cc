@@ -691,22 +691,22 @@ void ChemSystem::optimization_microiteration(
   Optimization optorb_optimizer(integrals, hamiltonian_matrix, dets, coefs[0]);
 
   if (Util::str_equals_ci("newton", method)) {
-    Timer::start("Newton optimization");
+    Timer::start("Newton microiteration");
     optorb_optimizer.get_optorb_rotation_matrix_from_newton();
   } else if (Util::str_equals_ci("grad_descent", method)) {
-    Timer::start("Gradient descent optimization");
+    Timer::start("Gradient descent microiteration");
     optorb_optimizer.get_optorb_rotation_matrix_from_grad_descent();
   } else if (Util::str_equals_ci("amsgrad", method)) {
-    Timer::start("AMSGrad optimization");
+    Timer::start("AMSGrad microiteration");
     optorb_optimizer.get_optorb_rotation_matrix_from_amsgrad();
   } else if (Util::str_equals_ci("bfgs", method)) {
-    Timer::start("BFGS optimization");
+    Timer::start("BFGS microiteration");
     optorb_optimizer.generate_optorb_integrals_from_bfgs();
   } else if (Util::str_equals_ci("full_optimization", method)) {
-    Timer::start("Full optimization");
+    Timer::start("Full optimization microiteration");
     optorb_optimizer.get_optorb_rotation_matrix_from_full_optimization(energy_var[0]);
   } else {
-    Timer::start("Approximate Newton optimization");
+    Timer::start("Approximate Newton microiteration");
     optorb_optimizer.get_optorb_rotation_matrix_from_approximate_newton();
   }
   Timer::end();
