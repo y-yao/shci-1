@@ -498,7 +498,7 @@ void RDM::dump_2rdm(const bool dump_csv) const {
       FILE* pFile;
       pFile = fopen("spatialRDM.txt", "w");
 
-      fprintf(pFile, "%d\n", n_orbs);
+      fprintf(pFile, "%zu\n", n_orbs);
 
       for (unsigned p = 0; p < n_orbs; p++) {
         for (unsigned q = 0; q < n_orbs; q++) {

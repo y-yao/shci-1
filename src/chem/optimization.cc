@@ -703,10 +703,13 @@ VectorXd Optimization::hessian_diagonal(
 
 void Optimization::get_generalized_Fock() {
   generalized_Fock_matrix.resize(n_orbs, n_orbs);
-#pragma omp parallel for
+#pragma omp parallel for collapse(2) schedule(dynamic)
   for (unsigned i = 0; i < n_orbs; i++) {
     for (unsigned j = 0; j < n_orbs; j++) {
-      generalized_Fock_matrix(i, j) = generalized_Fock_element(i, j);
+      if (integrals.orb_sym[i] == integrals.orb_sym[j])
+        generalized_Fock_matrix(i, j) = generalized_Fock_element(i, j);
+      else
+        generalized_Fock_matrix(i, j) = 0.;
     }
   }
 }
