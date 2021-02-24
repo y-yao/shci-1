@@ -300,7 +300,10 @@ void Solver<S>::optimization_run() {
       Timer::checkpoint("update Hamiltonian elements");
 
       Davidson davidson(system.n_states);
-      davidson.diagonalize(hamiltonian.matrix, system.coefs, 1e-8, Parallel::is_master());
+      while (!davidson.converged) {
+        davidson.diagonalize(hamiltonian.matrix, system.coefs, 1e-8, Parallel::is_master());
+        system.coefs = davidson.get_lowest_eigenvectors();
+      }
       system.energy_var = davidson.get_lowest_eigenvalues();
       system.coefs = davidson.get_lowest_eigenvectors();
     
