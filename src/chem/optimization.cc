@@ -253,6 +253,17 @@ void Optimization::get_optorb_rotation_matrix_from_newton() {
   rdm.clear();
   size_t dim = param_indices.size();
 
+  SelfAdjointEigenSolver<MatrixXd> es(hess);
+  double Hoo_lowest = es.eigenvalues().minCoeff();
+  std::cout<<"Hoo\n"<<hess<<"\nHoo eigenvals:\n"<<es.eigenvalues().transpose()<<std::endl;
+  std::cout<<"Hoo_lowest "<<Hoo_lowest<<std::endl;
+
+  if (Hoo_lowest < 0.) {
+    const double diag_shift = - 1.5 * Hoo_lowest;
+    hess += diag_shift * MatrixXd::Identity(dim, dim);
+    std::cout<<"diag shift: "<<diag_shift<<std::endl;
+  }
+  
   // rotation matrix
   // VectorXd new_param = hess.fullPivLu().solve(-1 * grad);
   VectorXd new_param = hess.householderQr().solve(-1 * grad);
@@ -316,8 +327,9 @@ void Optimization::get_optorb_rotation_matrix_from_approximate_newton() {
 
   VectorXd new_param(dim);
   for (size_t i = 0; i < dim; i++) {
-    hess_diag(i) = (hess_diag(i) > 0 ? std::max(hess_diag(i), 1e-5)
-                                     : std::min(hess_diag(i), -1e-5));
+    //hess_diag(i) = (hess_diag(i) > 0 ? std::max(hess_diag(i), 1e-5)
+    //                                 : std::min(hess_diag(i), -1e-5));
+    hess_diag(i) = std::max(hess_diag(i), 1e-5);
     new_param(i) = -grad(i) / hess_diag(i);
   }
 
@@ -434,23 +446,39 @@ void Optimization::generate_optorb_integrals_from_bfgs() {
   VectorXd grad = gradient(param_indices);
 
   if (restart) {
-    hess = hessian(param_indices);
+    //hess = hessian(param_indices);
+    VectorXd hess_diag = hessian_diagonal(param_indices);
+    for (size_t i = 0; i < dim; i++) hess_diag[i] = std::max(hess_diag[i], 1e-5);
+    hess = hess_diag.asDiagonal();
     rdm.clear();
     grad_prev = VectorXd::Zero(dim);
     update_prev = VectorXd::Zero(dim);
     restart = false;
   }
   rdm.clear();
-  VectorXd y = grad - grad_prev;
-  VectorXd hs = hess * update_prev;
+  const VectorXd y = grad - grad_prev;
+  const VectorXd hs = hess * update_prev;
   const double ys = y.dot(update_prev);
   const double shs = hs.dot(update_prev);
-  if (ys > 1e-5 && shs > 1e-5) {
+  std::cout<<"ys, shs = "<<ys<<" "<<shs<<std::endl;
+  if (ys > 1e-10 && abs(shs) > 1e-10) {
     hess += y * y.transpose() / ys - hs * hs.transpose() / shs;
   } else {
     std::cout<<"skip updating Hessian"<<std::endl;
   }
+  Timer::start("Eigen diagonalization of Hoo");
+  SelfAdjointEigenSolver<MatrixXd> es(hess);
+  double Hoo_lowest = es.eigenvalues().minCoeff();
+  std::cout<<"Hoo_lowest "<<Hoo_lowest<<std::endl;
+  Timer::end();
+  if (Hoo_lowest < 1e-4) {
+    const double diag_shift = std::max(- 1.5 * Hoo_lowest, 1e-4);
+    hess += diag_shift * MatrixXd::Identity(dim, dim);
+    std::cout<<"diag shift: "<<diag_shift<<std::endl;
+  }
+  Timer::start("Eigen linsolve of Hoo");
   VectorXd new_param = hess.householderQr().solve(-1 * grad);
+  Timer::end();
   grad_prev = grad;
   update_prev = new_param;
 
