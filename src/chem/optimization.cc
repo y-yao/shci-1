@@ -466,18 +466,9 @@ void Optimization::generate_optorb_integrals_from_bfgs() {
   } else {
     std::cout<<"skip updating Hessian"<<std::endl;
   }
-  Timer::start("Eigen diagonalization of Hoo");
-  SelfAdjointEigenSolver<MatrixXd> es(hess);
-  double Hoo_lowest = es.eigenvalues().minCoeff();
-  std::cout<<"Hoo_lowest "<<Hoo_lowest<<std::endl;
   Timer::end();
-  if (Hoo_lowest < 1e-4) {
-    const double diag_shift = std::max(- 1.5 * Hoo_lowest, 1e-4);
-    hess += diag_shift * MatrixXd::Identity(dim, dim);
-    std::cout<<"diag shift: "<<diag_shift<<std::endl;
-  }
   Timer::start("Eigen linsolve of Hoo");
-  VectorXd new_param = hess.householderQr().solve(-1 * grad);
+  VectorXd new_param = (hess + 1e-5 * MatrixXd::Identity(dim, dim)).householderQr().solve(-grad);
   Timer::end();
   grad_prev = grad;
   update_prev = new_param;
