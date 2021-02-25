@@ -448,9 +448,8 @@ void Optimization::generate_optorb_integrals_from_bfgs() {
   if (restart) {
     //hess = hessian(param_indices);
     VectorXd hess_diag = hessian_diagonal(param_indices);
-    for (size_t i = 0; i < dim; i++) hess_diag[i] = std::max(hess_diag[i], 1e-5);
+    for (size_t i = 0; i < dim; i++) hess_diag[i] = std::max(hess_diag[i] / 4., 1e-5);
     hess = hess_diag.asDiagonal();
-    rdm.clear();
     grad_prev = VectorXd::Zero(dim);
     update_prev = VectorXd::Zero(dim);
     restart = false;
@@ -461,15 +460,25 @@ void Optimization::generate_optorb_integrals_from_bfgs() {
   const double ys = y.dot(update_prev);
   const double shs = hs.dot(update_prev);
   std::cout<<"ys, shs = "<<ys<<" "<<shs<<std::endl;
-  if (ys > 1e-10 && abs(shs) > 1e-10) {
+  const bool update_hessian = ys > 1e-6 && abs(shs) > 1e-6;
+  if (update_hessian) {
     hess += y * y.transpose() / ys - hs * hs.transpose() / shs;
   } else {
     std::cout<<"skip updating Hessian"<<std::endl;
   }
+
+  /*
+  Timer::start("Eigen diagonalization of Hoo");
+  SelfAdjointEigenSolver<MatrixXd> es(hess);
+  double Hoo_lowest = es.eigenvalues().minCoeff();
+  std::cout<<"Hoo_lowest "<<Hoo_lowest<<std::endl;
   Timer::end();
+  */
+
   Timer::start("Eigen linsolve of Hoo");
   VectorXd new_param = (hess + 1e-5 * MatrixXd::Identity(dim, dim)).householderQr().solve(-grad);
   Timer::end();
+  
   grad_prev = grad;
   update_prev = new_param;
 
