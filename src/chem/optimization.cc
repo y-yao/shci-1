@@ -483,7 +483,6 @@ void Optimization::generate_optorb_integrals_from_bfgs() {
   update_prev = new_param;
 
   fill_rot_matrix_with_parameters(new_param, param_indices);
-  rotate_integrals();
 }
 
 void Optimization::get_optorb_rotation_matrix_from_full_optimization(
