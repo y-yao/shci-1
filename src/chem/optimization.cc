@@ -256,6 +256,7 @@ void Optimization::get_optorb_rotation_matrix_from_newton() {
   SelfAdjointEigenSolver<MatrixXd> es(hess);
   double Hoo_lowest = es.eigenvalues().minCoeff();
   std::cout<<"Hoo\n"<<hess<<"\nHoo eigenvals:\n"<<es.eigenvalues().transpose()<<std::endl;
+  exit(0);
   std::cout<<"Hoo_lowest "<<Hoo_lowest<<std::endl;
 
   if (Hoo_lowest < 0.) {
@@ -442,6 +443,7 @@ void Optimization::generate_optorb_integrals_from_bfgs() {
   static bool restart = true;
   static VectorXd grad_prev, update_prev;
   static MatrixXd hess;
+  static double initial_update_norm;
 
   VectorXd grad = gradient(param_indices);
 
@@ -452,19 +454,19 @@ void Optimization::generate_optorb_integrals_from_bfgs() {
     hess = hess_diag.asDiagonal();
     grad_prev = VectorXd::Zero(dim);
     update_prev = VectorXd::Zero(dim);
-    restart = false;
+    //restart = false;
   }
   rdm.clear();
   const VectorXd y = grad - grad_prev;
   const VectorXd hs = hess * update_prev;
   const double ys = y.dot(update_prev);
   const double shs = hs.dot(update_prev);
-  std::cout<<"ys, shs = "<<ys<<" "<<shs<<std::endl;
+  if (Parallel::is_master()) printf("ys, shs = %.5f, %.5f\n", ys, shs);
   const bool update_hessian = ys > 1e-6 && abs(shs) > 1e-6;
   if (update_hessian) {
     hess += y * y.transpose() / ys - hs * hs.transpose() / shs;
   } else {
-    std::cout<<"skip updating Hessian"<<std::endl;
+    if (Parallel::is_master()) printf("Skip updating Hessian\n");
   }
 
   /*
@@ -476,9 +478,27 @@ void Optimization::generate_optorb_integrals_from_bfgs() {
   */
 
   Timer::start("Eigen linsolve of Hoo");
-  VectorXd new_param = (hess + 1e-5 * MatrixXd::Identity(dim, dim)).householderQr().solve(-grad);
+  VectorXd new_param = (hess + 1e-3 * MatrixXd::Identity(dim, dim)).householderQr().solve(-grad);
   Timer::end();
-  
+
+  double update_norm = new_param.norm();
+  static double step_size_factor = 5.;
+  if (restart) {
+    initial_update_norm = new_param.norm();
+    restart = false;
+  } else {
+    if (update_norm > step_size_factor * initial_update_norm) {
+      if (Parallel::is_master()) printf("Applying step size control.\n");
+      const double new_update_norm = step_size_factor * initial_update_norm;
+      new_param /= update_norm / new_update_norm;
+      update_norm = new_update_norm;
+    }
+    step_size_factor = std::max(0.25, step_size_factor * 0.97); // shrink max step size every iter
+  }
+  if (Parallel::is_master())
+    printf("norm of orbital gradient: %.5f, norm of orbital update: %.5f.\n", grad.norm(),
+           update_norm);
+ 
   grad_prev = grad;
   update_prev = new_param;
 
@@ -493,6 +513,7 @@ void Optimization::get_optorb_rotation_matrix_from_full_optimization(
   size_t mem_avail = Util::get_mem_avail();
   if (Parallel::is_master()) printf("Mem available for optimization: %.1f GB", mem_avail * 1e-9);
   double param_proportion = std::min((mem_avail * 0.8) / (n_dets * n_param * 4), Config::get<double>("optimization/param_proportion", 1.01));
+  std::cout<<"\nparam_proportion "<<param_proportion<<std::endl;
   VectorXd grad;
   MatrixXdR hess;
   if (param_proportion < 1.) {
@@ -552,7 +573,7 @@ std::cout<<"\npert theory estimate of Hessian lowest eigenval: "<<correction<<st
 
   SelfAdjointEigenSolver<MatrixXd> es(hess);
   double Hoo_lowest = es.eigenvalues().minCoeff();
-  Hoo_lowest = Hoo_lowest < 0 ? Hoo_lowest : 0.;
+  //Hoo_lowest = Hoo_lowest < 0 ? Hoo_lowest : 0.;
   std::cout<<"Hoo_lowest "<<Hoo_lowest<<std::endl;
 
   // n_dets-1 ci parameters; remove first one.
