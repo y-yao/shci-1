@@ -31,8 +31,8 @@ public:
     double lowest_eigenvalue = 0.;
     double lowest_eigenvalue_prev = 0.;
  
-    std::vector<double> initial_vector_c(wf_coefs), initial_vector_o(n_orb_param, 0.);
-    for (size_t i = 0; i < n_orb_param; i++) initial_vector_o[i] = Hoo(i, i) > 1e-5 ? Hco(0, i) / Hoo(i, i) : 0.;
+    std::vector<double> initial_vector_c(n_dets, 0.), initial_vector_o(n_orb_param, 0.);
+    for (size_t i = 0; i < n_orb_param; i++) initial_vector_o[i] = Hoo(i, i) > 1e-5 ? - Hco(0, i) / Hoo(i, i) : 0.;
 
     std::vector<std::vector<double>> v_c(n_iterations_store), v_o(n_iterations_store);
     std::vector<std::vector<double>> Hv_c(n_iterations_store), Hv_o(n_iterations_store);
