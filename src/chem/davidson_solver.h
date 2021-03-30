@@ -27,7 +27,7 @@ public:
     Timer::start("Davidson diagonalization solver");
 
     const double TOLERANCE = 1e-7;
-    const size_t n_iterations_store = 5;
+    const size_t n_iterations_store = 10;
     double lowest_eigenvalue = 0.;
     double lowest_eigenvalue_prev = 0.;
  

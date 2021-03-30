@@ -583,8 +583,8 @@ std::cout<<"\npert theory estimate of Hessian lowest eigenval: "<<correction<<st
   if (Config::get<bool>("optimization/cg", false)) { // conjugate gradient
     for (size_t j = 0; j < n_param; j++) hess_ci_orb(0, j) = 0.;
     CGSolver cg(hamiltonian_matrix, hess_ci_orb, hess, e_var, grad);
-    //const double diagonal_shift =  Config::get<double>("optimization/cg_diagonal_shift", 0.);
-    const double diagonal_shift =  Config::get<double>("optimization/cg_diagonal_shift", -10 * Hoo_lowest - 100 * correction);
+    const double diagonal_shift =  Config::get<double>("optimization/cg_diagonal_shift", 0.);
+    //const double diagonal_shift =  Config::get<double>("optimization/cg_diagonal_shift", -10 * Hoo_lowest - 100 * correction);
     cg.set_diagonal_shift(diagonal_shift);
     new_param_ = cg.solve(wf_coefs);
   } else { // augmented hessian
