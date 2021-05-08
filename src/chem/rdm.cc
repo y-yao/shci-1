@@ -251,24 +251,16 @@ void RDM::write_in_1rdm_and_hessian_co(const unsigned p, const unsigned q, const
       if (indices2index(p, t) >= 0) {
 #pragma omp atomic
         (*hessian_ci_orb_p)(i_det, indices2index(p, t)) += 2 * integrals.get_1b(t, q) * perm_fac * coef_j;
+#pragma omp atomic
+        (*hessian_ci_orb_p)(j_det, indices2index(p, t)) += 2 * integrals.get_1b(t, q) * perm_fac * coef_i;
       }
     }
     for (unsigned t = 0; t < p; t++) {
       if (indices2index(t, p) >= 0) {
 #pragma omp atomic
         (*hessian_ci_orb_p)(i_det, indices2index(t, p)) -= 2 * integrals.get_1b(t, q) * perm_fac * coef_j;
-      }
-    }
-    for (unsigned t = 0; t < p; t++) {
-      if (indices2index(t, p) >= 0) {
 #pragma omp atomic
         (*hessian_ci_orb_p)(j_det, indices2index(t, p)) -= 2 * integrals.get_1b(t, q) * perm_fac * coef_i;
-      }
-    }
-    for (unsigned t = p + 1; t < n_orbs; t++) {
-      if (indices2index(p, t) >= 0) {
-#pragma omp atomic
-        (*hessian_ci_orb_p)(j_det, indices2index(p, t)) += 2 * integrals.get_1b(t, q) * perm_fac * coef_i;
       }
     }
   }
@@ -865,24 +857,16 @@ void RDM::write_in_2rdm_and_hessian_co(const unsigned p, const unsigned q, const
       if (indices2index(p, t) >= 0) {
 #pragma omp atomic
         (*hessian_ci_orb_p)(i_det, indices2index(p, t)) += 2 * coef_j * integrals.get_2b(t, s, q, r) * perm_fac;
+#pragma omp atomic
+        (*hessian_ci_orb_p)(j_det, indices2index(p, t)) += 2 * coef_i * integrals.get_2b(t, s, q, r) * perm_fac;
       }
     }
     for (unsigned t = 0; t < p; t++) {
       if (indices2index(t, p) >= 0) {
 #pragma omp atomic
         (*hessian_ci_orb_p)(i_det, indices2index(t, p)) -= 2 * coef_j * integrals.get_2b(t, s, q, r) * perm_fac;
-      }
-    }
-    for (unsigned t = 0; t < p; t++) {
-      if (indices2index(t, p) >= 0) {
 #pragma omp atomic
         (*hessian_ci_orb_p)(j_det, indices2index(t, p)) -= 2 * coef_i * integrals.get_2b(t, s, q, r) * perm_fac;
-      }
-    }
-    for (unsigned t = p + 1; t < n_orbs; t++) {
-      if (indices2index(p, t) >= 0) {
-#pragma omp atomic
-        (*hessian_ci_orb_p)(j_det, indices2index(p, t)) += 2 * coef_i * integrals.get_2b(t, s, q, r) * perm_fac;
       }
     }
   }
